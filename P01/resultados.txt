@@ -1,0 +1,10 @@
+Query: select * from beer where name = ?
+| NAME | BREWER | 
+| Amstel | Amstel Brewery | 
+Query: select price from serves where beer = 'Amstel'
+| PRICE | 
+| 2.75 | 
+| 2.75 | 
+| 3 | 
+| 2.75 | 
+| 2.5 | 

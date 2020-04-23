@@ -1,5 +1,6 @@
 import java.util.*;
 import java.sql.*;
+import java.io.*;
 
 public class P07_1 {
     private static Connection conn = null;
@@ -51,6 +52,7 @@ public class P07_1 {
                                         consultaSinClavePrimaria();
                                         break;
                                     case 2:
+                                        consultaClavePrimaria();
                                         break;
                                     case 3:
                                         break;
@@ -62,8 +64,10 @@ public class P07_1 {
                         }
                         break;
                     case 2:
+                        update();
                         break;
                     case 3:
+                        insert();
                         break;
                     case 4:
                         break;
@@ -72,100 +76,129 @@ public class P07_1 {
                         break;
                 }
             }
-
-            //Statement st = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-            //ResultSet rs = st.executeQuery("select * from beer");
-            //String[][] tabla = getData(rs);
-//
-            //if (tabla == null) return;
-            //mostrarTabla(tabla);
-
         } catch (SQLException e) {
+            System.out.println(e.getMessage() + " | SQLState: " + e.getSQLState());
+        } catch (IOException e) {
             System.out.println(e.getMessage());
         } finally {
             try {
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.out.println(e.getMessage());
+                System.out.println(e.getMessage() + " | SQLState: " + e.getSQLState());
             }
         }
 
         sc.close();
     }
 
-    public static void consultaSinClavePrimaria() {
+    public static void consultaSinClavePrimaria() throws SQLException, IOException {
         Scanner sc = new Scanner(System.in);
         String query = "select price from serves where beer = ";
         System.out.println("Query: " + query + "...");
         System.out.print("Introduce el campo where: ");
         query += sc.nextLine();
-        System.out.println(query);
 
-        try {
-            Statement st = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-            ResultSet rs = st.executeQuery(query);
-            String[][] tabla = getData(rs);
-            mostrarTabla(tabla);
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
+        Statement st = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery(query);
+        String[][] tabla = getData(rs);
+        String datos = datosTabla(tabla);
+        System.out.println(datos);
+        String resultado = "Query: " + query + "\n" + datos;
+        GestorArchivos.escribir("resultados.txt", resultado, TipoStream.BUFFER, true);
     }
 
-    public static void mostrarTabla(String[][] tabla) {
-        if (tabla == null) return;
-        for (int i = 0; i < tabla[0].length; i++) {
-            System.out.print("| ");
-            for (int j = 0; j < tabla.length; j++) {
-                System.out.print(tabla[j][i] + " | ");
-            }
-            System.out.println();
-        }
+    public static void consultaClavePrimaria() throws SQLException, IOException {
+        Scanner sc = new Scanner(System.in);
+        String query = "select * from beer where name = ?";
+        PreparedStatement pst = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        System.out.println("Query: " + query);
+        System.out.print("Introduce un valor: ");
+        String val = sc.nextLine();
+        pst.setString(1, val);
+
+        ResultSet rs = pst.executeQuery();
+        String[][] tabla = getData(rs);
+        String datos = datosTabla(tabla);
+        System.out.println(datos);
+        String resultado = "Query: " + query + "\n" + datos;
+        GestorArchivos.escribir("resultados.txt", resultado, TipoStream.BUFFER, true);
     }
 
-    public static String[][] getData(ResultSet rs) {
-        String[][] ret = null;
-        try {
-            ResultSetMetaData rsmd = rs.getMetaData();
-            int colCount = rsmd.getColumnCount();
+    public static void update() throws SQLException, IOException {
+        Scanner sc = new Scanner(System.in);
+        String update = "update beer set brewer = ? where name = ?";
+        PreparedStatement pst = conn.prepareStatement(update, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        System.out.println("Update: " + update);
+        System.out.print("Introduce el valor original: ");
+        String original = sc.nextLine();
+        pst.setString(2, original);
+        System.out.print("Introduce el valor nuevo: ");
+        String nuevo = sc.nextLine();
+        pst.setString(1, nuevo);
+        pst.executeQuery();
+    }
 
-            // obtener el numero de filas
-            rs.last(); // nos posicinamos al ultimo
-            int rowCount = rs.getRow(); // el ultimo sera el numero total de filas
-            ret = new String[colCount][rowCount + 1]; // rowCount + 1 para poner añadir el nombre de la columna
+    public static void insert() throws SQLException, IOException {
+        Scanner sc = new Scanner(System.in);
+        String insert = "insert into beer values (?, ?)";
+        PreparedStatement pst = conn.prepareStatement(insert, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        System.out.println("Insert: " + insert);
+        System.out.print("Introduce el primer valor: ");
+        String val_1 = sc.nextLine();
+        pst.setString(1, val_1);
+        System.out.print("Introduce el segundo valor: ");
+        String val_2 = sc.nextLine();
+        pst.setString(2, val_2);
+        pst.executeQuery();
+    }
 
-            for (int i = 1; i <= colCount; i ++) {
-                ArrayList<String> arr = new ArrayList<String>();
-    
-                // el primer elemento del array va a ser el nombre de la columna
-                // despues vienen todos los valores
-                String colName = rsmd.getColumnName(i);
-                rs.beforeFirst(); // reseteamos el indice
-                String[] res = getColumn(rs, i);
-                for (String val : res) arr.add(val);
-                // hay que tener en cuenta que i empieza con el valor 1
-                ret[i - 1] = arr.toArray(new String[arr.size()]);
+    public static String datosTabla(String[][] tabla) {
+        String ret = "";
+
+        if (tabla != null) {
+            for (int i = 0; i < tabla[0].length; i++) {
+                ret += "| ";
+                for (int j = 0; j < tabla.length; j++) ret += tabla[j][i] + " | ";
+                ret += "\n";
             }
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            ret = null;
         }
 
         return ret;
     }
 
-    public static String[] getColumn(ResultSet rs, int col) {
-        ArrayList<String> arr = new ArrayList<String>();
+    public static String[][] getData(ResultSet rs) throws SQLException {
+        String[][] ret = null;
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int colCount = rsmd.getColumnCount();
 
-        try {
-            ResultSetMetaData rsmd = rs.getMetaData();
-            String colName = rsmd.getColumnName(col);
-    
-            arr.add(colName);
-    
-            while (rs.next()) arr.add(rs.getString(colName));
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
+        // obtener el numero de filas
+        rs.last(); // nos posicinamos al ultimo
+        int rowCount = rs.getRow(); // el ultimo sera el numero total de filas
+        ret = new String[colCount][rowCount + 1]; // rowCount + 1 para poner añadir el nombre de la columna
+
+        for (int i = 1; i <= colCount; i ++) {
+            ArrayList<String> arr = new ArrayList<String>();
+
+            // el primer elemento del array va a ser el nombre de la columna
+            // despues vienen todos los valores
+            String colName = rsmd.getColumnName(i);
+            rs.beforeFirst(); // reseteamos el indice
+            String[] res = getColumn(rs, i);
+            for (String val : res) arr.add(val);
+            // hay que tener en cuenta que i empieza con el valor 1
+            ret[i - 1] = arr.toArray(new String[arr.size()]);
         }
+
+        return ret;
+    }
+
+    public static String[] getColumn(ResultSet rs, int col) throws SQLException {
+        ArrayList<String> arr = new ArrayList<String>();
+        ResultSetMetaData rsmd = rs.getMetaData();
+        String colName = rsmd.getColumnName(col);
+        arr.add(colName);
+
+        while (rs.next()) arr.add(rs.getString(colName));
 
         return arr.toArray(new String[arr.size()]);
     }
