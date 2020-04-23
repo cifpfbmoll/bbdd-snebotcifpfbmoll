@@ -1,7 +1,9 @@
 # Practica 7 
 ### Compilar
-`javac -classpath ../JDBC/ojdbc8.jar:../JDBC/ucp.jar:. P07_1.java`
-`java -classpath ../JDBC/ojdbc8.jar:../JDBC/ucp.jar:. P07_1.java`
+```
+$ javac -classpath ../JDBC/ojdbc8.jar:../JDBC/ucp.jar:. P07_1.java
+$ java -classpath ../JDBC/ojdbc8.jar:../JDBC/ucp.jar:. P07_1.java
+```
 ### SQL Injection
 El codigo para obtener el query es el siguiente:
 ```
